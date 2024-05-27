@@ -1,0 +1,27 @@
+[
+	{
+		"file": "C:\\Users\\LPSA7\\OneDrive - Simon Fraser University (1sfu)\\Summer Projects\\FPSProject\\Source\\FPSProject\\FPSProject.Build.cs",
+		"command": "\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.38.33130\\bin\\HostX64\\x64\\cl.exe\" @\"C:\\Users\\LPSA7\\OneDrive - Simon Fraser University (1sfu)\\Summer Projects\\FPSProject\\.vscode\\compileCommands_Default\\FPSProject.211.rsp\"",
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.0\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\LPSA7\\OneDrive - Simon Fraser University (1sfu)\\Summer Projects\\FPSProject\\Source\\FPSProject\\FPSProject.cpp",
+		"command": "\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.38.33130\\bin\\HostX64\\x64\\cl.exe\" @\"C:\\Users\\LPSA7\\OneDrive - Simon Fraser University (1sfu)\\Summer Projects\\FPSProject\\.vscode\\compileCommands_Default\\FPSProject.211.rsp\"",
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.0\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\LPSA7\\OneDrive - Simon Fraser University (1sfu)\\Summer Projects\\FPSProject\\Source\\FPSProject\\FPSProject.h",
+		"command": "\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.38.33130\\bin\\HostX64\\x64\\cl.exe\" @\"C:\\Users\\LPSA7\\OneDrive - Simon Fraser University (1sfu)\\Summer Projects\\FPSProject\\.vscode\\compileCommands_Default\\FPSProject.211.rsp\"",
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.0\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\LPSA7\\OneDrive - Simon Fraser University (1sfu)\\Summer Projects\\FPSProject\\Source\\FPSProject\\Private\\FPSCharacter.cpp",
+		"command": "\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.38.33130\\bin\\HostX64\\x64\\cl.exe\" @\"C:\\Users\\LPSA7\\OneDrive - Simon Fraser University (1sfu)\\Summer Projects\\FPSProject\\.vscode\\compileCommands_Default\\FPSProject.211.rsp\"",
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.0\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\LPSA7\\OneDrive - Simon Fraser University (1sfu)\\Summer Projects\\FPSProject\\Source\\FPSProject\\Public\\FPSCharacter.h",
+		"command": "\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.38.33130\\bin\\HostX64\\x64\\cl.exe\" @\"C:\\Users\\LPSA7\\OneDrive - Simon Fraser University (1sfu)\\Summer Projects\\FPSProject\\.vscode\\compileCommands_Default\\FPSProject.211.rsp\"",
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.0\\Engine\\Source"
+	}
+]

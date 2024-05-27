@@ -1,0 +1,19 @@
+{
+    "configurations": [
+        {
+            "name": "FPSProjectEditor Editor Win64 Development (FPSProject)",
+            "intelliSenseMode": "msvc-x64",
+            "compileCommands": "C:\\Users\\LPSA7\\OneDrive - Simon Fraser University (1sfu)\\Summer Projects\\FPSProject\\.vscode\\compileCommands_FPSProject.json",
+            "cStandard": "c17",
+            "cppStandard": "c++17"
+        },
+        {
+            "name": "Win32",
+            "intelliSenseMode": "msvc-x64",
+            "compileCommands": "C:\\Users\\LPSA7\\OneDrive - Simon Fraser University (1sfu)\\Summer Projects\\FPSProject\\.vscode\\compileCommands_Default.json",
+            "cStandard": "c17",
+            "cppStandard": "c++17"
+        }
+    ],
+    "version": 4
+}
