@@ -19,9 +19,13 @@ protected:
     virtual void NativeBeginPlay() override;
     virtual void NativeUpdateAnimation(float DeltaTime) override;  // Fixed typo (Deltatime to DeltaTime)
 
+    UFUNCTION()
     virtual void CurrentWeaponChanged(class AWeapon* NewWeapon, const class AWeapon* OldWeapon);
+    
     virtual void SetVars(const float DeltaTime);
     virtual void CalculateWeaponSway(const float DeltaTime);
+
+    virtual void SetIKTransform();
 
 public:
     /*
@@ -47,4 +51,7 @@ public:
 
    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Anim")
    FTransform RelativeCameraTransform;
+
+   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Axis")
+   FTransform RHandToSightsTransform;
 };
