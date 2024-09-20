@@ -102,6 +102,7 @@ void AWeapon::StartReload()
         // Play reload animation if available
         if (ReloadAnim)
         {
+            ReloadTime = ReloadAnim->GetPlayLength();
             AFPSCharacter* FPSCharacter = Cast<AFPSCharacter>(CurrentOwner);
             FPSCharacter->Reload();
             Mesh->PlayAnimation(ReloadAnim, false);

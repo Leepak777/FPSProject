@@ -3,6 +3,8 @@
 #include "Net/UnrealNetwork.h"
 #include "Weapon/Weapon.h"
 #include "Animation/FPSAnimInstance.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Components/CapsuleComponent.h"
 
 // Sets default values
 AFPSCharacter::AFPSCharacter()
@@ -62,6 +64,7 @@ void AFPSCharacter::BeginPlay()
 			}
 		}
 	}
+	GetCharacterMovement()->MaxWalkSpeed = 300;
 }
 
 void AFPSCharacter::Tick(const float DeltaTime)
@@ -78,6 +81,18 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 
 	PlayerInputComponent->BindAction(FName("Aim"), EInputEvent::IE_Pressed, this, &AFPSCharacter::StartAiming);
 	PlayerInputComponent->BindAction(FName("Aim"), EInputEvent::IE_Released, this, &AFPSCharacter::ReverseAiming);
+
+	// Jogging
+    PlayerInputComponent->BindAction("Jog", EInputEvent::IE_Pressed, this, &AFPSCharacter::StartJogging);
+    PlayerInputComponent->BindAction("Jog", EInputEvent::IE_Released, this, &AFPSCharacter::StopJogging);
+
+    // Crouching
+    PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AFPSCharacter::StartCrouch);
+    PlayerInputComponent->BindAction("Crouch", IE_Released, this, &AFPSCharacter::StopCrouch);
+
+    // Prone
+    PlayerInputComponent->BindAction("Prone", EInputEvent::IE_Pressed, this, &AFPSCharacter::StartProne);
+    PlayerInputComponent->BindAction("Prone", EInputEvent::IE_Released, this, &AFPSCharacter::StopProne);
 
 	PlayerInputComponent->BindAction(FName("Fire"), EInputEvent::IE_Pressed, this, &AFPSCharacter::StartFiring);
 
@@ -281,8 +296,95 @@ void AFPSCharacter::UpdateAnimationStatus()
                 FPSAnimInstance->IsWalking = false;
                 FPSAnimInstance->IsWalkingBackward = false;
             }
+			FPSAnimInstance->IsCrouching = bIsCrouching;
+            FPSAnimInstance->IsProne = bIsProne;
         }
     }
 }
 
+FString AFPSCharacter::GetCurrentWeaponName() const
+{
+    if (CurrentWeapon)
+    {
+        return CurrentWeapon->GetName();  // Return the weapon's name
+    }
+    return "No Weapon";
+}
 
+FString AFPSCharacter::GetAmmoText() const
+{
+    if (CurrentWeapon)
+    {
+        return FString::Printf(TEXT("%d / %d"), CurrentWeapon->GetCurrentAmmo(), CurrentWeapon->GetMaxAmmo());  // Format as "CurrentAmmo / MaxAmmo"
+    }
+    return "0 / 0";
+}
+
+void AFPSCharacter::StartJogging()
+{
+    // Set speed for jogging
+    GetCharacterMovement()->MaxWalkSpeed = 600; // Define JogSpeed in your class
+}
+
+void AFPSCharacter::StopJogging()
+{
+    // Reset speed to normal walking speed
+    GetCharacterMovement()->MaxWalkSpeed = 300; // Define WalkSpeed in your class
+}
+
+void AFPSCharacter::StartCrouch()
+{
+    if (!bIsProne)
+    {
+        Crouch();
+        bIsCrouching = true;
+    }
+}
+
+void AFPSCharacter::StopCrouch()
+{
+    if (!bIsProne)
+    {
+        UnCrouch();
+        bIsCrouching = false;
+    }
+}
+
+void AFPSCharacter::StartProne()
+{
+    if (!bIsProne)
+    {
+        // Exit crouch if already crouching
+        if (bIsCrouching)
+        {
+            UnCrouch();
+            bIsCrouching = false;
+        }
+
+        // Adjust capsule size for prone state
+        GetCapsuleComponent()->SetCapsuleHalfHeight(40.0f);  // Adjust as necessary for prone height
+        GetCapsuleComponent()->SetCapsuleRadius(40.0f);      // Adjust as necessary for prone width
+
+        // Update camera position if needed (e.g., lower to ground)
+        FVector ProneCameraOffset = FVector(0, 0, -50.0f);   // Lower the camera for prone view
+        Camera->SetRelativeLocation(Camera->GetRelativeLocation() + ProneCameraOffset);
+
+        bIsProne = true;
+    }
+}
+
+void AFPSCharacter::StopProne()
+{
+    if (bIsProne)
+    {
+        // Restore capsule size when standing or crouching
+        GetCapsuleComponent()->SetCapsuleHalfHeight(88.0f);  // Default character capsule height
+        GetCapsuleComponent()->SetCapsuleRadius(42.0f);      // Default character capsule radius
+
+        // Reset camera position to normal
+        FVector ProneCameraOffset = FVector(0, 0, 50.0f);    // Move camera back up
+        Camera->SetRelativeLocation(Camera->GetRelativeLocation() + ProneCameraOffset);
+
+        bIsProne = false;
+    }
+}

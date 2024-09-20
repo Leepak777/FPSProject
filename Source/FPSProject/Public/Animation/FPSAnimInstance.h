@@ -73,6 +73,15 @@ public:
     UPROPERTY(BlueprintReadWrite, BlueprintReadWrite, Category = "Anim")
     bool IsWalkingBackward = false;
 
+    UPROPERTY(BlueprintReadWrite, Category = "Movement")
+    bool IsCrouching;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Movement")
+    bool IsProne;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Movement")
+    bool IsInAir;
+
     UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Anim|IK")
     FTransform CurrentWeaponCustomOffsetTransform;
     /*

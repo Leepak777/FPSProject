@@ -40,6 +40,27 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components")
 	class USkeletalMeshComponent* ClientMesh;
 
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+    FString GetCurrentWeaponName() const;
+
+    UFUNCTION(BlueprintCallable, Category = "Weapon")
+    FString GetAmmoText() const;
+
+    void StartJogging();
+
+    void StopJogging();
+
+    bool bIsProne;
+	bool bIsCrouching;
+
+    void StartCrouch();
+
+    void StopCrouch();
+
+    void StartProne();
+
+    void StopProne();
+
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Configurations")
 	TArray<TSubclassOf<class AWeapon>> DefaultWeapons;
