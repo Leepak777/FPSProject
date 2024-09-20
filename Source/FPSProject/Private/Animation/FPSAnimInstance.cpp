@@ -1,6 +1,8 @@
 #include "Animation/FPSAnimInstance.h"
+#include <Kismet/KismetMathLibrary.h>
 #include "Characters/FPSCharacter.h"
 #include "Camera/CameraComponent.h"
+
 
 UFPSAnimInstance::UFPSAnimInstance(){
 
@@ -38,6 +40,8 @@ void UFPSAnimInstance::NativeUpdateAnimation(float DeltaTime)
 
     SetVars(DeltaTime);
     CalculateWeaponSway(DeltaTime);
+
+    LastRotation = CameraTransform.Rotator();
 }
 
 void UFPSAnimInstance::SetVars(float DeltaTime)
@@ -47,12 +51,34 @@ void UFPSAnimInstance::SetVars(float DeltaTime)
     const FTransform RootOffset = Mesh->GetSocketTransform(FName("root"), RTS_Component).Inverse() * Mesh->GetSocketTransform(FName("ik_hand_root"));
     RelativeCameraTransform = CameraTransform.GetRelativeTransform(RootOffset);
 
+    ADSWeight = Character->ADSWeight;
 
+    /*
+    *OFFSETS
+    */
+    //Accumulative rotation
+    constexpr float AngleClamp = 6.f;
+    const FRotator& AddRotation = CameraTransform.Rotator() - LastRotation;
+    FRotator AddRotationClamped = FRotator(FMath::ClampAngle(AddRotation.Pitch, -AngleClamp, AngleClamp)*1.5f, 
+        FMath::ClampAngle(AddRotation.Yaw, -AngleClamp, AngleClamp), 0.f);
+    AddRotationClamped.Roll = AddRotationClamped.Yaw *0.7f;
+
+    AccumulativeRotation += AddRotationClamped;
+    AccumulativeRotation = UKismetMathLibrary::RInterpTo(AccumulativeRotation, FRotator::ZeroRotator, DeltaTime, 30.f);
+    AccumulativeRotationInterp = UKismetMathLibrary::RInterpTo(AccumulativeRotationInterp, AccumulativeRotation, DeltaTime, 5.f);
 }
 
 void UFPSAnimInstance::CalculateWeaponSway(float DeltaTime)
 {
+    FVector LocationOffset = FVector::ZeroVector;
+    FRotator RotationOffset = FRotator::ZeroRotator;
 
+    const FRotator& AccumulativeRotationInterpInverse = AccumulativeRotationInterp.GetInverse();
+    RotationOffset += AccumulativeRotationInterpInverse;
+
+    LocationOffset += FVector(0.f, AccumulativeRotationInterpInverse.Yaw, AccumulativeRotationInterpInverse.Pitch)/6.f;
+
+    OffsetTransform = FTransform(RotationOffset, LocationOffset);
 }
 
 void UFPSAnimInstance::CurrentWeaponChanged(AWeapon* NewWeapon, const AWeapon* OldWeapon)  // Fixed function signature and typo
@@ -72,4 +98,12 @@ void UFPSAnimInstance::CurrentWeaponChanged(AWeapon* NewWeapon, const AWeapon* O
 void UFPSAnimInstance::SetIKTransform()
 {
     RHandToSightsTransform = CurrentWeapon->GetSightsWorldTransform().GetRelativeTransform(Mesh->GetSocketTransform(FName("hand_r")));
+}
+
+void UFPSAnimInstance::PlayFireAnimation()
+{
+    if (FireMontage)
+    {
+        Montage_Play(FireMontage);  // Play the fire montage when shooting
+    }
 }
