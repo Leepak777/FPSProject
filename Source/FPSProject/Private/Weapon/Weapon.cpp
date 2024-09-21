@@ -1,6 +1,8 @@
 #include "Weapon/Weapon.h"
 #include "Characters/FPSCharacter.h"
 #include "Kismet/GameplayStatics.h"
+#include "Animation/FPSAnimInstance.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Camera/CameraComponent.h"
 
 
@@ -100,11 +102,19 @@ void AWeapon::StartReload()
     if (CurrentAmmo < MaxAmmo)
     {
         // Play reload animation if available
+        
         if (ReloadAnim)
         {
             ReloadTime = ReloadAnim->GetPlayLength();
             AFPSCharacter* FPSCharacter = Cast<AFPSCharacter>(CurrentOwner);
-            FPSCharacter->Reload();
+            UAnimInstance* AnimInstance = FPSCharacter->GetMesh()->GetAnimInstance();
+            UFPSAnimInstance* FPSAnimInstance = Cast<UFPSAnimInstance>(AnimInstance);
+            if(CurrentOwner->GetCharacterMovement()->MaxWalkSpeed == 600)
+            {
+                CharacterJogging = true;
+                CurrentOwner->GetCharacterMovement()->MaxWalkSpeed = 300;
+            }
+            FPSAnimInstance->IsReloading= true;
             Mesh->PlayAnimation(ReloadAnim, false);
         }
 
@@ -126,6 +136,15 @@ void AWeapon::FinishReload()
     {
         UGameplayStatics::PlaySoundAtLocation(this, ReloadFinishSound, GetActorLocation());
     }
+    AFPSCharacter* FPSCharacter = Cast<AFPSCharacter>(CurrentOwner);
+    UAnimInstance* AnimInstance = FPSCharacter->GetMesh()->GetAnimInstance();
+    UFPSAnimInstance* FPSAnimInstance = Cast<UFPSAnimInstance>(AnimInstance);
+    if(CurrentOwner->GetCharacterMovement()->MaxWalkSpeed == 300 && CharacterJogging == true)
+    {
+        CharacterJogging = false;
+        CurrentOwner->GetCharacterMovement()->MaxWalkSpeed = 600;
+    }
+    FPSAnimInstance->IsReloading= false;
 }
 
 void AWeapon::PlayMuzzleFlash()

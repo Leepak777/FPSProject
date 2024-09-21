@@ -46,12 +46,18 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Weapon")
     FString GetAmmoText() const;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation")
+    UAnimMontage* StandToCrouch;  
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation")
+    UAnimMontage* CrouchToStand;  
+
     void StartJogging();
 
     void StopJogging();
 
-    bool bIsProne;
-	bool bIsCrouching;
+    bool bIsProne = false;
+	bool bIsCrouching = false;
 
     void StartCrouch();
 
@@ -60,6 +66,8 @@ public:
     void StartProne();
 
     void StopProne();
+
+	void Reload();
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Configurations")
@@ -103,7 +111,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, REplicated, Category = "Anim")
 	float ADSWeight = 0.f;
 
-	void Reload();
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Configureations|Anim")
@@ -128,6 +135,15 @@ protected:
 
 	void UpdateAnimationStatus();
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animation")
+    class UBlendSpace* CurrentWeaponBlendSpaceIdleWalkJog;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animation")
+    class UBlendSpace* CurrentWeaponBlendSpaceCrouch;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
+    class UAnimSequence* CurrentWeaponReloadSequence;
+	
 protected:
 	virtual void NextWeapon();
 	virtual void LastWeapon();

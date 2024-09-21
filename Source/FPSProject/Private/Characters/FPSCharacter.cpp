@@ -11,11 +11,13 @@ AFPSCharacter::AFPSCharacter()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+	CurrentWeaponBlendSpaceIdleWalkJog = nullptr;
+	CurrentWeaponBlendSpaceCrouch = nullptr;
 
 	GetMesh()->SetTickGroup(ETickingGroup::TG_PostUpdateWork);
 	GetMesh()->bVisibleInReflectionCaptures = true;
 	GetMesh()->bCastHiddenShadow = true;
-
+	GetCharacterMovement()->MaxWalkSpeed = 300;
 	ClientMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ClientMesh"));
 	ClientMesh->SetCastShadow(false);
 	ClientMesh->bCastHiddenShadow = false;
@@ -60,6 +62,22 @@ void AFPSCharacter::BeginPlay()
 			if(Index == CurrentIndex)
 			{
 				CurrentWeapon = SpawnedWeapon;
+				CurrentWeaponBlendSpaceIdleWalkJog = CurrentWeapon->GetWeaponBlendSpaceIdleWalkJog();
+				CurrentWeaponBlendSpaceCrouch = CurrentWeapon->GetWeaponBlendSpaceCrouch();
+				CurrentWeaponReloadSequence = CurrentWeapon->GetWeaponReloadSequence();
+				// Get the AnimInstance and update its blend space if needed
+				UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+				if (AnimInstance)
+				{
+					// Assuming you have a custom animation instance class
+					UFPSAnimInstance* FPSAnimInstance = Cast<UFPSAnimInstance>(AnimInstance);
+					if (FPSAnimInstance)
+					{
+						FPSAnimInstance->CurrentWeaponBlendSpaceIdleWalkJog = CurrentWeaponBlendSpaceIdleWalkJog;
+						FPSAnimInstance->CurrentWeaponBlendSpaceCrouch = CurrentWeaponBlendSpaceCrouch;
+						FPSAnimInstance->CurrentWeaponReloadSequence = CurrentWeaponReloadSequence;
+					}
+				}
 				OnRep_CurrentWeapon(nullptr);
 			}
 		}
@@ -82,6 +100,8 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	PlayerInputComponent->BindAction(FName("Aim"), EInputEvent::IE_Pressed, this, &AFPSCharacter::StartAiming);
 	PlayerInputComponent->BindAction(FName("Aim"), EInputEvent::IE_Released, this, &AFPSCharacter::ReverseAiming);
 
+	PlayerInputComponent->BindAction(FName("Reload"), EInputEvent::IE_Pressed, this, &AFPSCharacter::Reload);
+
 	// Jogging
     PlayerInputComponent->BindAction("Jog", EInputEvent::IE_Pressed, this, &AFPSCharacter::StartJogging);
     PlayerInputComponent->BindAction("Jog", EInputEvent::IE_Released, this, &AFPSCharacter::StopJogging);
@@ -89,10 +109,6 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
     // Crouching
     PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AFPSCharacter::StartCrouch);
     PlayerInputComponent->BindAction("Crouch", IE_Released, this, &AFPSCharacter::StopCrouch);
-
-    // Prone
-    PlayerInputComponent->BindAction("Prone", EInputEvent::IE_Pressed, this, &AFPSCharacter::StartProne);
-    PlayerInputComponent->BindAction("Prone", EInputEvent::IE_Released, this, &AFPSCharacter::StopProne);
 
 	PlayerInputComponent->BindAction(FName("Fire"), EInputEvent::IE_Pressed, this, &AFPSCharacter::StartFiring);
 
@@ -153,6 +169,21 @@ void AFPSCharacter::EquipWeapon(const int32 Index)
 
 		const AWeapon* OldWeapon = CurrentWeapon;
 		CurrentWeapon = Weapons[Index];
+		// Update the current blend space from the new weapon's blend space
+        CurrentWeaponBlendSpaceIdleWalkJog = CurrentWeapon->GetWeaponBlendSpaceIdleWalkJog();
+		CurrentWeaponBlendSpaceCrouch = CurrentWeapon->GetWeaponBlendSpaceCrouch();
+        // Get the AnimInstance and update its blend space if needed
+        UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+        if (AnimInstance)
+        {
+            // Assuming you have a custom animation instance class
+            UFPSAnimInstance* FPSAnimInstance = Cast<UFPSAnimInstance>(AnimInstance);
+            if (FPSAnimInstance)
+            {
+                FPSAnimInstance->CurrentWeaponBlendSpaceIdleWalkJog = CurrentWeaponBlendSpaceIdleWalkJog;
+				FPSAnimInstance->CurrentWeaponBlendSpaceCrouch = CurrentWeaponBlendSpaceCrouch;
+            }
+        }
 		OnRep_CurrentWeapon(OldWeapon); 
 	}
 	else if(!HasAuthority())
@@ -203,11 +234,6 @@ void AFPSCharacter::StartFiring()
     {
         CurrentWeapon->Shoot();  // Call the Shoot function on the currently equipped weapon
     }
-}
-
-void AFPSCharacter::Reload()
-{
-	//ClientMesh->PlayAnimation(ReloadAnim, false);
 }
 
 void AFPSCharacter::TimelineProgress(const float Value)
@@ -332,8 +358,23 @@ void AFPSCharacter::StopJogging()
     GetCharacterMovement()->MaxWalkSpeed = 300; // Define WalkSpeed in your class
 }
 
+void AFPSCharacter::Reload()
+{
+	if(CurrentWeapon->GetCurrentAmmo() == CurrentWeapon->GetMaxAmmo()){return;}
+	CurrentWeapon->StartReload();
+}
+
 void AFPSCharacter::StartCrouch()
 {
+	if (GetMesh()->GetAnimInstance())
+    {
+        UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+        if (AnimInstance)
+        {
+            AnimInstance->Montage_Play(StandToCrouch);
+        }
+    }
     if (!bIsProne)
     {
         Crouch();
@@ -345,6 +386,15 @@ void AFPSCharacter::StopCrouch()
 {
     if (!bIsProne)
     {
+		if (GetMesh()->GetAnimInstance())
+        {
+            UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+            if (AnimInstance)
+            {
+                AnimInstance->Montage_Play(CrouchToStand);
+            }
+        }
         UnCrouch();
         bIsCrouching = false;
     }

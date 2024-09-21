@@ -53,10 +53,14 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "Sound")
     USoundBase* ReloadFinishSound;  // Sound when reload is complete
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
+    class UBlendSpace* WeaponBlendSpaceIdleWalkJog;
+    
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
+    class UBlendSpace* WeaponBlendSpaceCrouch;
 
-    // Reload functionality
-    void StartReload();
-    void FinishReload();
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
+    class UAnimSequence* WeaponReloadSequence;
 
 private:
     // Animation properties
@@ -75,6 +79,8 @@ private:
     UParticleSystem* MuzzleFlash; // Muzzle flash particle system
 
     void PlayMuzzleFlash();
+    
+    bool CharacterJogging = false;
 
     UPROPERTY(EditDefaultsOnly, Category = "Effects")
     UParticleSystem* HitEffect; // Particle system for hit effects
@@ -105,7 +111,14 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Configurations")
     FTransform PlacementTransform;
 
+    UBlendSpace* GetWeaponBlendSpaceIdleWalkJog() const { return WeaponBlendSpaceIdleWalkJog; }
+    UBlendSpace* GetWeaponBlendSpaceCrouch() const { return WeaponBlendSpaceCrouch; }
+    UAnimSequence* GetWeaponReloadSequence() const { return WeaponReloadSequence; }
+
     void Shoot();
+    // Reload functionality
+    void StartReload();
+    void FinishReload();
 
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "IK")
     FTransform GetSightsWorldTransform() const;

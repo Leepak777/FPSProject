@@ -73,14 +73,17 @@ public:
     UPROPERTY(BlueprintReadWrite, BlueprintReadWrite, Category = "Anim")
     bool IsWalkingBackward = false;
 
-    UPROPERTY(BlueprintReadWrite, Category = "Movement")
-    bool IsCrouching;
+    UPROPERTY(BlueprintReadWrite, BlueprintReadWrite, Category = "Movement")
+    bool IsCrouching = false;
 
-    UPROPERTY(BlueprintReadWrite, Category = "Movement")
-    bool IsProne;
+    UPROPERTY(BlueprintReadWrite, BlueprintReadWrite, Category = "Movement")
+    bool IsReloading = false;
 
-    UPROPERTY(BlueprintReadWrite, Category = "Movement")
-    bool IsInAir;
+    UPROPERTY(BlueprintReadWrite, BlueprintReadWrite, Category = "Movement")
+    bool IsProne = false;
+
+    UPROPERTY(BlueprintReadWrite, BlueprintReadWrite, Category = "Movement")
+    bool IsInAir = false;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Anim|IK")
     FTransform CurrentWeaponCustomOffsetTransform;
@@ -99,4 +102,14 @@ public:
     // Animation montage for firing the weapon
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
     UAnimMontage* FireMontage;
+
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
+    class UBlendSpace* CurrentWeaponBlendSpaceIdleWalkJog;
+    
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
+    class UBlendSpace* CurrentWeaponBlendSpaceCrouch;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
+    class UAnimSequence* CurrentWeaponReloadSequence;
 };
