@@ -50,7 +50,19 @@ public:
     UAnimMontage* StandToCrouch;  
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation")
-    UAnimMontage* CrouchToStand;  
+    UAnimMontage* CrouchToStand; 
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation")
+    UAnimMontage* StandToProne;  
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation")
+    UAnimMontage* ProneToStand; 
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation")
+    UAnimMontage* WalkJump;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation")
+    UAnimMontage* JogJump;   
 
     void StartJogging();
 
@@ -58,6 +70,8 @@ public:
 
     bool bIsProne = false;
 	bool bIsCrouching = false;
+	bool bIsJogging = false;
+	bool bIsJump = false;
 
     void StartCrouch();
 
@@ -67,7 +81,13 @@ public:
 
     void StopProne();
 
-	void Reload();
+	void StartJump();
+
+    void Landed(const FHitResult &Hit);
+
+    void Reload();
+
+	void AdjustCameraToFloor();
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Configurations")
@@ -143,7 +163,10 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
     class UAnimSequence* CurrentWeaponReloadSequence;
-	
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
+    class UAnimSequence* ProneReloadSequence;
+
 protected:
 	virtual void NextWeapon();
 	virtual void LastWeapon();

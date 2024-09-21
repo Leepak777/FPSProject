@@ -112,4 +112,7 @@ public:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
     class UAnimSequence* CurrentWeaponReloadSequence;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
+    class UAnimSequence* ProneReloadSequence;
 };

@@ -46,6 +46,9 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "Animation")
     UAnimSequence* ReloadAnim;  // Reload animation montage
 
+    UPROPERTY(EditDefaultsOnly, Category = "Animation")
+    UAnimSequence* ProneReloadAnim;  // Reload animation montage
+
     // Sound properties
     UPROPERTY(EditDefaultsOnly, Category = "Sound")
     USoundBase* ReloadSound;  // Reload sound
@@ -114,6 +117,7 @@ public:
     UBlendSpace* GetWeaponBlendSpaceIdleWalkJog() const { return WeaponBlendSpaceIdleWalkJog; }
     UBlendSpace* GetWeaponBlendSpaceCrouch() const { return WeaponBlendSpaceCrouch; }
     UAnimSequence* GetWeaponReloadSequence() const { return WeaponReloadSequence; }
+    UAnimSequence* GetWeaponProneReloadSequence() const { return ProneReloadAnim; }
 
     void Shoot();
     // Reload functionality

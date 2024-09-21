@@ -65,6 +65,7 @@ void AFPSCharacter::BeginPlay()
 				CurrentWeaponBlendSpaceIdleWalkJog = CurrentWeapon->GetWeaponBlendSpaceIdleWalkJog();
 				CurrentWeaponBlendSpaceCrouch = CurrentWeapon->GetWeaponBlendSpaceCrouch();
 				CurrentWeaponReloadSequence = CurrentWeapon->GetWeaponReloadSequence();
+				ProneReloadSequence = CurrentWeapon->GetWeaponProneReloadSequence();
 				// Get the AnimInstance and update its blend space if needed
 				UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 				if (AnimInstance)
@@ -76,6 +77,7 @@ void AFPSCharacter::BeginPlay()
 						FPSAnimInstance->CurrentWeaponBlendSpaceIdleWalkJog = CurrentWeaponBlendSpaceIdleWalkJog;
 						FPSAnimInstance->CurrentWeaponBlendSpaceCrouch = CurrentWeaponBlendSpaceCrouch;
 						FPSAnimInstance->CurrentWeaponReloadSequence = CurrentWeaponReloadSequence;
+						FPSAnimInstance->ProneReloadSequence = ProneReloadSequence;
 					}
 				}
 				OnRep_CurrentWeapon(nullptr);
@@ -103,12 +105,18 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	PlayerInputComponent->BindAction(FName("Reload"), EInputEvent::IE_Pressed, this, &AFPSCharacter::Reload);
 
 	// Jogging
-    PlayerInputComponent->BindAction("Jog", EInputEvent::IE_Pressed, this, &AFPSCharacter::StartJogging);
-    PlayerInputComponent->BindAction("Jog", EInputEvent::IE_Released, this, &AFPSCharacter::StopJogging);
+    PlayerInputComponent->BindAction(FName("Jog"), EInputEvent::IE_Pressed, this, &AFPSCharacter::StartJogging);
+    PlayerInputComponent->BindAction(FName("Jog"), EInputEvent::IE_Released, this, &AFPSCharacter::StopJogging);
+
+	// Jogging
+    PlayerInputComponent->BindAction(FName("Jump"), EInputEvent::IE_Pressed, this, &AFPSCharacter::StartJump);
 
     // Crouching
-    PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AFPSCharacter::StartCrouch);
-    PlayerInputComponent->BindAction("Crouch", IE_Released, this, &AFPSCharacter::StopCrouch);
+    PlayerInputComponent->BindAction(FName("Crouch"), EInputEvent::IE_Pressed, this, &AFPSCharacter::StartCrouch);
+    PlayerInputComponent->BindAction(FName("Crouch"), EInputEvent::IE_Released, this, &AFPSCharacter::StopCrouch);
+
+	PlayerInputComponent->BindAction(FName("Prone"), EInputEvent::IE_Pressed, this, &AFPSCharacter::StartProne);
+    PlayerInputComponent->BindAction(FName("Prone"), EInputEvent::IE_Released, this, &AFPSCharacter::StopProne);
 
 	PlayerInputComponent->BindAction(FName("Fire"), EInputEvent::IE_Pressed, this, &AFPSCharacter::StartFiring);
 
@@ -201,6 +209,10 @@ void AFPSCharacter::Server_SetCurrentWeapon_Implementation(AWeapon* NewWeapon)
 
 void AFPSCharacter::StartAiming()
 {
+	if(GetCharacterMovement()->MaxWalkSpeed == 600){
+		StopJogging();
+		bIsJogging = true;
+	}
 	if(IsLocallyControlled()|| HasAuthority()){
 		Multi_Aim_Implementation(true);
 	}
@@ -209,6 +221,10 @@ void AFPSCharacter::StartAiming()
 	}
 }
 void AFPSCharacter::ReverseAiming(){
+	if(bIsJogging == true){
+		StartJogging();
+		bIsJogging = false;
+	}
 	if(IsLocallyControlled()|| HasAuthority()){
 		Multi_Aim_Implementation(false);
 	}
@@ -255,15 +271,21 @@ void AFPSCharacter::LastWeapon()
 
 void AFPSCharacter::MoveForward(float Value)
 {
-	const FVector& Direction = FRotationMatrix(FRotator(0.f, GetControlRotation().Yaw, 0.f)).GetUnitAxis(EAxis::X);
-	AddMovementInput(Direction, Value);
+	if (!bIsProne)
+	{
+		const FVector& Direction = FRotationMatrix(FRotator(0.f, GetControlRotation().Yaw, 0.f)).GetUnitAxis(EAxis::X);
+		AddMovementInput(Direction, Value);
+	}
 
 }
 
 void AFPSCharacter::MoveRight(float Value)
 {
-	const FVector& Direction = FRotationMatrix(FRotator(0.f, GetControlRotation().Yaw, 0.f)).GetUnitAxis(EAxis::Y);
-	AddMovementInput(Direction, Value);
+	if (!bIsProne)
+	{
+		const FVector& Direction = FRotationMatrix(FRotator(0.f, GetControlRotation().Yaw, 0.f)).GetUnitAxis(EAxis::Y);
+		AddMovementInput(Direction, Value);	
+	}
 }
 
 void AFPSCharacter::Lookup(float Value)
@@ -364,6 +386,37 @@ void AFPSCharacter::Reload()
 	CurrentWeapon->StartReload();
 }
 
+void AFPSCharacter::StartJump()
+{
+	if (!GetCharacterMovement()->IsFalling())  // Check if the character is on the ground
+    {
+        Jump();  // Physically jump
+
+        // Play the jump animation depending on the current movement speed
+        if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+        {
+            if (GetCharacterMovement()->MaxWalkSpeed == 300)
+            {
+                AnimInstance->Montage_Play(WalkJump);
+            }
+            else if (GetCharacterMovement()->MaxWalkSpeed == 600)
+            {
+                AnimInstance->Montage_Play(JogJump);
+            }
+        }
+
+        bIsJump = true;  // Update the flag to track jumping
+    }
+}
+
+void AFPSCharacter::Landed(const FHitResult& Hit)
+{
+    Super::Landed(Hit);
+
+    // Reset jump flag when landing
+    bIsJump = false;
+}
+
 void AFPSCharacter::StartCrouch()
 {
 	if (GetMesh()->GetAnimInstance())
@@ -402,24 +455,26 @@ void AFPSCharacter::StopCrouch()
 
 void AFPSCharacter::StartProne()
 {
+	
     if (!bIsProne)
     {
         // Exit crouch if already crouching
         if (bIsCrouching)
         {
-            UnCrouch();
-            bIsCrouching = false;
+            StopCrouch();
         }
 
-        // Adjust capsule size for prone state
-        GetCapsuleComponent()->SetCapsuleHalfHeight(40.0f);  // Adjust as necessary for prone height
-        GetCapsuleComponent()->SetCapsuleRadius(40.0f);      // Adjust as necessary for prone width
-
-        // Update camera position if needed (e.g., lower to ground)
-        FVector ProneCameraOffset = FVector(0, 0, -50.0f);   // Lower the camera for prone view
-        Camera->SetRelativeLocation(Camera->GetRelativeLocation() + ProneCameraOffset);
-
         bIsProne = true;
+		if (GetMesh()->GetAnimInstance())
+		{
+			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+			if (AnimInstance)
+			{
+				AnimInstance->Montage_Play(StandToProne);
+			}
+		}
+		 AdjustCameraToFloor();
     }
 }
 
@@ -427,14 +482,42 @@ void AFPSCharacter::StopProne()
 {
     if (bIsProne)
     {
-        // Restore capsule size when standing or crouching
-        GetCapsuleComponent()->SetCapsuleHalfHeight(88.0f);  // Default character capsule height
-        GetCapsuleComponent()->SetCapsuleRadius(42.0f);      // Default character capsule radius
-
-        // Reset camera position to normal
-        FVector ProneCameraOffset = FVector(0, 0, 50.0f);    // Move camera back up
-        Camera->SetRelativeLocation(Camera->GetRelativeLocation() + ProneCameraOffset);
 
         bIsProne = false;
+		if (GetMesh()->GetAnimInstance())
+		{
+			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+			if (AnimInstance)
+			{
+				AnimInstance->Montage_Play(ProneToStand);
+			}
+		}
+		 AdjustCameraToFloor();
+    }
+}
+
+void AFPSCharacter::AdjustCameraToFloor()
+{
+    // Trace from the camera location downward
+    FVector CameraLocation = Camera->GetComponentLocation();
+    FVector TraceEnd = CameraLocation - FVector(0.f, 0.f, 0.f);  // Trace 100 units down
+
+    FHitResult HitResult;
+    FCollisionQueryParams TraceParams(FName(TEXT("CameraFloorTrace")), false, this);
+
+    if (GetWorld()->LineTraceSingleByChannel(HitResult, CameraLocation, TraceEnd, ECC_Visibility, TraceParams))
+    {
+        // Adjust the camera height if the trace hits the floor
+        if (HitResult.bBlockingHit)
+        {
+            float FloorZ = HitResult.ImpactPoint.Z;
+            float CameraZ = CameraLocation.Z;
+            if (CameraZ - FloorZ < 10.0f)  // If camera is within 10 units of the floor
+            {
+                // Raise the camera to stay above the floor
+                Camera->SetRelativeLocation(FVector(0.f, 0.f, 10.f));  // Adjust this as necessary
+            }
+        }
     }
 }
