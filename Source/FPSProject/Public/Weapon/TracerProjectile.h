@@ -13,8 +13,10 @@ class FPSPROJECT_API ATracerProjectile : public AActor
 
 public:
     ATracerProjectile();
+    UPROPERTY(EditDefaultsOnly)
 	UProjectileMovementComponent* ProjectileMovementComponent;
-
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    USphereComponent* CollisionComponent; 
 	UPROPERTY(EditDefaultsOnly, Category = "Damage")
     float Damage = 20.f;
 
@@ -25,11 +27,7 @@ protected:
     virtual void BeginPlay() override;
 	virtual void Tick(const float DeltaTime) override;
 private:
-    UPROPERTY(VisibleAnywhere)
-    USphereComponent* CollisionComponent;
-
-    UPROPERTY(VisibleAnywhere)
-    
+       
 	
 
     FTimerHandle LifetimeTimerHandle;

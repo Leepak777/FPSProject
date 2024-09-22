@@ -66,7 +66,8 @@ void AWeapon::Shoot()
                     FVector ForwardVector = MuzzleRotation.Vector();
                     //DrawDebugLine(GetWorld(), MuzzleLocation, MuzzleLocation + (ForwardVector * 100.0f), FColor::Blue, false, 5.0f);
                     Projectile->SetActorRotation(MuzzleRotation);
-                    Projectile->ProjectileMovementComponent->Velocity = ForwardVector * Projectile->ProjectileMovementComponent->InitialSpeed; // Set the velocity
+                    Projectile->ProjectileMovementComponent->Velocity = ShotDirection * Projectile->ProjectileMovementComponent->InitialSpeed;
+
                 }
             }
 
