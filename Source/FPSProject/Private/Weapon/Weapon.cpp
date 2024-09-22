@@ -1,8 +1,11 @@
 #include "Weapon/Weapon.h"
 #include "Characters/FPSCharacter.h"
 #include "Kismet/GameplayStatics.h"
+#include "Weapon/TracerProjectile.h"
+#include "Characters/Enemy.h"
 #include "Animation/FPSAnimInstance.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "DrawDebugHelpers.h"
 #include "Camera/CameraComponent.h"
 
 
@@ -36,66 +39,51 @@ void AWeapon::Shoot()
         // Play dry fire sound or animation
         return;
     }
+
     if (CurrentOwner)
     {
         FVector EyeLocation;
         FRotator EyeRotation;
 
-        // Cast CurrentOwner to AFPSCharacter and ensure it's valid
         AFPSCharacter* FPSCharacter = Cast<AFPSCharacter>(CurrentOwner);
         if (FPSCharacter)
         {
-            // Get camera location and rotation
             EyeLocation = FPSCharacter->Camera->GetComponentLocation();
             EyeRotation = FPSCharacter->Camera->GetComponentRotation();
 
             FVector ShotDirection = EyeRotation.Vector();
-            FVector TraceEnd = EyeLocation + (ShotDirection * 10000);
 
-            FHitResult HitResult;
-            FCollisionQueryParams QueryParams;
-            QueryParams.AddIgnoredActor(this);
-            QueryParams.AddIgnoredActor(FPSCharacter);  // Use AddIgnoredActor properly
-
-            // Raycast for hit detection
-            if (GetWorld()->LineTraceSingleByChannel(HitResult, EyeLocation, TraceEnd, ECC_Visibility, QueryParams))
+            if (TracerProjectileClass)
             {
-                AActor* HitActor = HitResult.GetActor();
+                FVector MuzzleLocation = Mesh->GetSocketLocation("MuzzleFlash");
+                FRotator MuzzleRotation = Mesh->GetSocketRotation("MuzzleFlash");
 
-                if (HitActor)
+                ATracerProjectile* Projectile = GetWorld()->SpawnActor<ATracerProjectile>(TracerProjectileClass, MuzzleLocation, MuzzleRotation);
+                
+                if (Projectile)
                 {
-                    if (HitEffect)
-                    {
-                        UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), HitEffect, HitResult.ImpactPoint);
-                    }
-                    
-                    if (HitSound)
-                    {
-                        UGameplayStatics::PlaySoundAtLocation(GetWorld(), HitSound, HitResult.ImpactPoint);
-                    }
-                    UGameplayStatics::ApplyPointDamage(HitActor, 20.f, ShotDirection, HitResult, CurrentOwner->GetInstigatorController(), this, nullptr);  // Use ApplyPointDamage
+                    // Set the direction and velocity
+                    FVector ForwardVector = MuzzleRotation.Vector();
+                    //DrawDebugLine(GetWorld(), MuzzleLocation, MuzzleLocation + (ForwardVector * 100.0f), FColor::Blue, false, 5.0f);
+                    Projectile->SetActorRotation(MuzzleRotation);
+                    Projectile->ProjectileMovementComponent->Velocity = ForwardVector * Projectile->ProjectileMovementComponent->InitialSpeed; // Set the velocity
                 }
             }
-            APlayerController* PlayerController = Cast<APlayerController>(FPSCharacter->GetController());
-            if (PlayerController)
+
+            // Reduce current ammo and play animations
+            CurrentAmmo--;
+            Mesh->PlayAnimation(ShootAnim, false);
+            PlayMuzzleFlash();
+
+            if (CurrentAmmo <= 0)
             {
-                // Get the current control rotation and apply the recoil to it
-                FRotator CurrentRotation = PlayerController->GetControlRotation();
-                CurrentRotation.Pitch -= RecoilAmount;  // Apply recoil by adjusting the pitch
-                PlayerController->SetControlRotation(CurrentRotation);
+                StartReload();
             }
         }
-        
-        RecoilOffset = FMath::VInterpTo(RecoilOffset, FVector::ZeroVector, GetWorld()->GetDeltaSeconds(), RecoilRecoverySpeed);
-        CurrentAmmo--;
-        Mesh->PlayAnimation(ShootAnim, false);
-        PlayMuzzleFlash();
-    }
-     if (CurrentAmmo <= 0)
-    {
-        StartReload();
     }
 }
+
+
 
 void AWeapon::StartReload()
 {
@@ -131,7 +119,8 @@ void AWeapon::StartReload()
 
 void AWeapon::FinishReload()
 {
-    CurrentAmmo = MaxAmmo;
+    MaxAmmo -= (MegAmount - CurrentAmmo);
+    CurrentAmmo = MegAmount;
     if (ReloadFinishSound)
     {
         UGameplayStatics::PlaySoundAtLocation(this, ReloadFinishSound, GetActorLocation());
@@ -145,6 +134,11 @@ void AWeapon::FinishReload()
         CurrentOwner->GetCharacterMovement()->MaxWalkSpeed = 600;
     }
     FPSAnimInstance->IsReloading= false;
+}
+
+void AWeapon::MaxAmmoIncrease()
+{
+    MaxAmmo += 30;
 }
 
 void AWeapon::PlayMuzzleFlash()

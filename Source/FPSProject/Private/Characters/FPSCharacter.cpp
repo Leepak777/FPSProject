@@ -2,6 +2,7 @@
 #include "Camera/CameraComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Weapon/Weapon.h"
+#include "Item/Item.h"
 #include "Animation/FPSAnimInstance.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -13,6 +14,9 @@ AFPSCharacter::AFPSCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 	CurrentWeaponBlendSpaceIdleWalkJog = nullptr;
 	CurrentWeaponBlendSpaceCrouch = nullptr;
+
+	MaxHealth = 100.0f;  // or your desired value
+    CurrentHealth = MaxHealth;
 
 	GetMesh()->SetTickGroup(ETickingGroup::TG_PostUpdateWork);
 	GetMesh()->bVisibleInReflectionCaptures = true;
@@ -103,6 +107,9 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	PlayerInputComponent->BindAction(FName("Aim"), EInputEvent::IE_Released, this, &AFPSCharacter::ReverseAiming);
 
 	PlayerInputComponent->BindAction(FName("Reload"), EInputEvent::IE_Pressed, this, &AFPSCharacter::Reload);
+
+	PlayerInputComponent->BindAction(FName("Pickup"), EInputEvent::IE_Pressed, this, &AFPSCharacter::PickupCurrentItem);
+
 
 	// Jogging
     PlayerInputComponent->BindAction(FName("Jog"), EInputEvent::IE_Pressed, this, &AFPSCharacter::StartJogging);
@@ -346,6 +353,12 @@ void AFPSCharacter::UpdateAnimationStatus()
             }
 			FPSAnimInstance->IsCrouching = bIsCrouching;
             FPSAnimInstance->IsProne = bIsProne;
+			if(bIsJump){
+				FPSAnimInstance->IsInAir = true;
+			}
+			else{
+				FPSAnimInstance->IsInAir = false;
+			}
         }
     }
 }
@@ -391,9 +404,8 @@ void AFPSCharacter::StartJump()
 	if (!GetCharacterMovement()->IsFalling())  // Check if the character is on the ground
     {
         Jump();  // Physically jump
-
         // Play the jump animation depending on the current movement speed
-        if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+        /*if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
         {
             if (GetCharacterMovement()->MaxWalkSpeed == 300)
             {
@@ -403,7 +415,7 @@ void AFPSCharacter::StartJump()
             {
                 AnimInstance->Montage_Play(JogJump);
             }
-        }
+        }*/
 
         bIsJump = true;  // Update the flag to track jumping
     }
@@ -520,4 +532,91 @@ void AFPSCharacter::AdjustCameraToFloor()
             }
         }
     }
+}
+
+void AFPSCharacter::ShowPickupPrompt(AItem* Item)
+{
+    if (Item && Item->bCanBePickedUp)
+    {
+        CurrentItemInRange = Item;
+
+        // Display the pickup prompt (using debug message for now)
+        GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Press 'E' to pick up ") + Item->ItemName);
+    }
+}
+
+void AFPSCharacter::HidePickupPrompt()
+{
+    CurrentItemInRange = nullptr;
+    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Left pickup range"));
+}
+
+void AFPSCharacter::PickupCurrentItem()
+{
+    if (CurrentItemInRange)
+    {
+        CurrentItemInRange->OnPickup(this);  // Call the item pickup method
+        CurrentItemInRange = nullptr;  // Clear the reference
+    }
+}
+
+void AFPSCharacter::PickupWeapon(TSubclassOf<AWeapon> WeaponClass)
+{
+    // Check if weapon can be picked up
+    if (WeaponClass)
+    {
+        // Spawn weapon and add to the array
+        AWeapon* NewWeapon = GetWorld()->SpawnActor<AWeapon>(WeaponClass, GetActorLocation(), FRotator::ZeroRotator);
+        if (NewWeapon)
+        {
+            Weapons.Add(NewWeapon);
+            // Optionally, update UI or perform other logic
+        }
+    }
+}
+
+void AFPSCharacter::IncreaseMaxAmmo(TSubclassOf<AWeapon> WeaponClass)
+{
+    // Check if weapon can be picked up
+    if (WeaponClass)
+    {
+        // Loop through each weapon in the array
+        for (AWeapon* Weapon : Weapons)
+        {
+            if (Weapon && Weapon->IsA(WeaponClass)) // Check if it's the same class
+            {
+                Weapon->MaxAmmoIncrease(); // Increase max ammo by a desired amount
+                break; // Exit loop after increasing ammo for the matched weapon
+            }
+        }
+    }
+}
+
+void AFPSCharacter::AddToInventory(AItem* Item)
+{
+    if (Item)
+    {
+        Inventory.Add(Item);
+        // Optionally, update UI or perform other logic
+        Item->Destroy(); // Remove item from the world
+    }
+}
+
+float AFPSCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+    // Implement the logic for handling damage to the player character
+    CurrentHealth -= DamageAmount;
+
+    if (CurrentHealth <= 0)
+    {
+        // Handle player death
+        Destroy();
+    }
+
+    return DamageAmount;
+}
+
+void AFPSCharacter::Heal(float HealAmount)
+{
+    CurrentHealth = FMath::Clamp(CurrentHealth + HealAmount, 0.0f, MaxHealth);
 }

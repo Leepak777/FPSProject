@@ -5,6 +5,7 @@
 #include <Components/TimelineComponent.h>
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Item/Item.h"
 #include "FPSCharacter.generated.h"
 
 
@@ -26,6 +27,11 @@ protected:
 	virtual void Tick(const float DeltaTime) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
+    float MaxHealth;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
+    float CurrentHealth;
 
 public:	
 	// Called every frame
@@ -64,6 +70,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation")
     UAnimMontage* JogJump;   
 
+
+    UFUNCTION(BlueprintCallable)
+    void Heal(float HealAmount);
+
     void StartJogging();
 
     void StopJogging();
@@ -90,12 +100,37 @@ public:
 	void AdjustCameraToFloor();
 
 protected:
-	UPROPERTY(EditDefaultsOnly, Category = "Configurations")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Configurations")
 	TArray<TSubclassOf<class AWeapon>> DefaultWeapons;
 
 public:
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated, Category = "State")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Inventory")
+    TArray<AItem*> Inventory;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated, Category = "Inventory|State")
 	TArray<class AWeapon*> Weapons;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pickup")
+    AItem* CurrentItemInRange;
+
+	UFUNCTION(BlueprintCallable)
+    void PickupWeapon(TSubclassOf<class AWeapon> WeaponClass);
+
+	UFUNCTION(BlueprintCallable)
+    void IncreaseMaxAmmo(TSubclassOf<class AWeapon> WeaponClass);
+
+    UFUNCTION(BlueprintCallable)
+    void AddToInventory(AItem* Item);
+
+    UFUNCTION(BlueprintCallable, Category = "Pickup")
+    void ShowPickupPrompt(AItem* Item);
+
+    UFUNCTION(BlueprintCallable, Category = "Pickup")
+    void HidePickupPrompt();
+
+    UFUNCTION(BlueprintCallable, Category = "Pickup")
+    void PickupCurrentItem();
+
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, ReplicatedUsing = OnRep_CurrentWeapon, Category = "State")
 	class AWeapon* CurrentWeapon;
@@ -131,7 +166,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, REplicated, Category = "Anim")
 	float ADSWeight = 0.f;
 
-
+	virtual float TakeDamage(
+        float DamageAmount, 
+        struct FDamageEvent const& DamageEvent, 
+        class AController* EventInstigator, 
+        AActor* DamageCauser
+    ) override;
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Configureations|Anim")
 	class UCurveFloat* AimingCurve;

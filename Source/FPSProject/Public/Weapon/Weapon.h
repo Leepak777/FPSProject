@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-
+#include "Weapon/TracerProjectile.h"
 #include "GameFramework/Actor.h"
 #include "Weapon.generated.h"
 
@@ -40,6 +40,9 @@ protected:
     int32 CurrentAmmo; // Current ammo count
 
     UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+    int32 MegAmount; // Current ammo count
+
+    UPROPERTY(EditDefaultsOnly, Category = "Weapon")
     float ReloadTime; // Time taken to reload
 
     // Animation properties
@@ -64,6 +67,12 @@ protected:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
     class UAnimSequence* WeaponReloadSequence;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Effects")
+    UParticleSystem* TraceParticleSystem;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Projectile")
+    TSubclassOf<class ATracerProjectile> TracerProjectileClass;
 
 private:
     // Animation properties
@@ -96,7 +105,7 @@ public:
     class USceneComponent* Root;
     // Getter for CurrentAmmo
     int32 GetCurrentAmmo() const { return CurrentAmmo; }
-
+    void MaxAmmoIncrease();
     // Getter for MaxAmmo
     int32 GetMaxAmmo() const { return MaxAmmo; }
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components")
