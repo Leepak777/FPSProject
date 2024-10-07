@@ -41,6 +41,12 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
     float CurrentHealth;
 
+	UFUNCTION()
+	void OnDetectionSphereOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnDetectionSphereEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
 public:	
 	// Called every frame
 	//virtual void Tick(float DeltaTime) override;
@@ -128,8 +134,8 @@ public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="AI")
     float AI_EnemyAttackRange;  // Range at which AI should start attacking the player
 
-    // AI Behavior
-    void AIFireAtPlayer();
+	UPROPERTY(VisibleAnywhere, Category = "AI")
+	USphereComponent* DetectionSphere;
 
 	class AAIController* AIController;
 	void StartFiring();

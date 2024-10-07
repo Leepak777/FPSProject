@@ -48,26 +48,36 @@ void AWeapon::Shoot()
         AFPSCharacter* FPSCharacter = Cast<AFPSCharacter>(CurrentOwner);
         if (FPSCharacter)
         {
-            EyeLocation = FPSCharacter->Camera->GetComponentLocation();
-            EyeRotation = FPSCharacter->Camera->GetComponentRotation();
+            if (FPSCharacter->IsPlayerControlled())
+            {
+                // Player controlled - use camera's location and rotation
+                EyeLocation = FPSCharacter->Camera->GetComponentLocation();
+                EyeRotation = FPSCharacter->Camera->GetComponentRotation();
+            }
+            else
+            {
+                // AI controlled - use the AI character's facing direction
+                EyeLocation = FPSCharacter->GetActorLocation();
+                EyeRotation = FPSCharacter->GetControlRotation(); // AI's control rotation
+            }
 
-            FVector ShotDirection = EyeRotation.Vector();
-
+            FVector ShotDirection = EyeRotation.Vector(); // The direction to shoot
+            
             if (TracerProjectileClass)
             {
                 FVector MuzzleLocation = Mesh->GetSocketLocation("MuzzleFlash");
-                FRotator MuzzleRotation = Mesh->GetSocketRotation("MuzzleFlash");
-
-                ATracerProjectile* Projectile = GetWorld()->SpawnActor<ATracerProjectile>(TracerProjectileClass, MuzzleLocation, MuzzleRotation);
+                
+                // Spawn the projectile at the muzzle location
+                ATracerProjectile* Projectile = GetWorld()->SpawnActor<ATracerProjectile>(TracerProjectileClass, MuzzleLocation, EyeRotation);
                 
                 if (Projectile)
                 {
-                    // Set the direction and velocity
-                    FVector ForwardVector = MuzzleRotation.Vector();
-                    //DrawDebugLine(GetWorld(), MuzzleLocation, MuzzleLocation + (ForwardVector * 100.0f), FColor::Blue, false, 5.0f);
-                    Projectile->SetActorRotation(MuzzleRotation);
+                    // Set the direction and velocity using the ShotDirection
+                    Projectile->SetActorRotation(ShotDirection.Rotation());
                     Projectile->ProjectileMovementComponent->Velocity = ShotDirection * Projectile->ProjectileMovementComponent->InitialSpeed;
 
+                    // Debugging: Visualize the shot direction
+                    DrawDebugLine(GetWorld(), MuzzleLocation, MuzzleLocation + (ShotDirection * 1000.0f), FColor::Blue, false, 2.0f);
                 }
             }
 

@@ -25,10 +25,14 @@ AFPSCharacterAIController::AFPSCharacterAIController()
 void AFPSCharacterAIController::BeginPlay()
 {
     Super::BeginPlay();
-
+    
     PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
     EnemyDetectionRadius = 10000.0f;  // Example detection range
     ControlledCharacter = Cast<AFPSCharacter>(GetPawn()); // Initialize ControlledCharacter
+    
+    if (!ControlledCharacter) {
+        UE_LOG(LogTemp, Error, TEXT("ControlledCharacter is not valid! Check if the pawn is set correctly."));
+    }
 }
 
 void AFPSCharacterAIController::Tick(float DeltaTime)
@@ -41,32 +45,48 @@ void AFPSCharacterAIController::Tick(float DeltaTime)
         FRotator LookAtRotation = (TargetLocation - ControlledCharacter->GetActorLocation()).Rotation();
 
         // Debugging
-        UE_LOG(LogTemp, Warning, TEXT("Target Location: %s"), *TargetLocation.ToString());
-        UE_LOG(LogTemp, Warning, TEXT("Current Rotation: %s"), *ControlledCharacter->GetActorRotation().ToString());
+        UE_LOG(LogTemp, Warning, TEXT("Aiming at target: %s"), *ControlledCharacter->GetTargetActor()->GetName());
 
         ControlledCharacter->SetActorRotation(FMath::RInterpTo(ControlledCharacter->GetActorRotation(), LookAtRotation, DeltaTime, 5.0f));
-        ControlledCharacter->StartFiring();
+
+        // Start firing if the target is within a certain range
+        float DistanceToTarget = FVector::Dist(ControlledCharacter->GetActorLocation(), TargetLocation);
+        if (DistanceToTarget < EnemyDetectionRadius)
+        {
+            ControlledCharacter->StartFiring(); // Call the firing function
+        }
+
+        // Move toward the target if it's farther than a certain distance
+        float MoveDistanceThreshold = 300.0f; // Threshold to start moving
+        if (DistanceToTarget > MoveDistanceThreshold)
+        {
+            MoveToActor(ControlledCharacter->GetTargetActor(), 5.0f); // Move towards the target
+        }
     }
 }
 
 void AFPSCharacterAIController::OnTargetDetected(AActor* Actor, FAIStimulus Stimulus)
 {
-   if (Actor->IsA<AFPSCharacter>())
+    // Check if the detected actor is the player character
+    if (Actor->IsA<AFPSCharacter>() && Actor == PlayerPawn && Stimulus.WasSuccessfullySensed())
     {
-        if (Stimulus.WasSuccessfullySensed()) // Check if the actor was sensed successfully
-        {
-            MoveToActor(Actor);
-            ControlledCharacter->SetTargetActor(Actor);
-        }
-        else
-        {
-            // Target is lost; handle accordingly
-            ControlledCharacter->SetTargetActor(nullptr);
-        }
+        UE_LOG(LogTemp, Warning, TEXT("Target detected: %s"), *Actor->GetName());
+        
+        MoveToActor(Actor); // Move towards the detected player
+        ControlledCharacter->SetTargetActor(Actor);
+    }
+    else
+    {
+        // Target is lost; handle accordingly
+        ControlledCharacter->SetTargetActor(nullptr);
     }
 }
 
 void AFPSCharacterAIController::MoveToTarget(AActor* TargetActor)
 {
-    MoveToActor(TargetActor, 5.0f); // 5.0f is the acceptable radius
+    if (TargetActor) {
+        MoveToActor(TargetActor, 25.0f); // 5.0f is the acceptable radius
+    } else {
+        UE_LOG(LogTemp, Warning, TEXT("Target actor is null, cannot move to target."));
+    }
 }

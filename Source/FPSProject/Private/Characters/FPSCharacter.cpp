@@ -2,6 +2,7 @@
 #include "Camera/CameraComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Weapon/Weapon.h"
+#include "GameFramework/Pawn.h"
 #include "Item/Item.h"
 #include "Animation/FPSAnimInstance.h"
 #include "Kismet/GameplayStatics.h"
@@ -37,12 +38,20 @@ AFPSCharacter::AFPSCharacter()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->bUsePawnControlRotation = true;
 	Camera->SetupAttachment(GetMesh(), FName("head"));
+
+    DetectionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("DetectionSphere"));
+    DetectionSphere->InitSphereRadius(AI_EnemyAttackRange);
+    DetectionSphere->SetupAttachment(RootComponent);
+    DetectionSphere->SetSphereRadius(100000000000.0f);
+    
 }
 
 // Called when the game starts or when spawned
 void AFPSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+    DetectionSphere->OnComponentBeginOverlap.AddDynamic(this, &AFPSCharacter::OnDetectionSphereOverlap);
+    DetectionSphere->OnComponentEndOverlap.AddDynamic(this, &AFPSCharacter::OnDetectionSphereEndOverlap);
     if (GetController()->IsA(AAIController::StaticClass()))
     {
         bIsAIControlled = true;
@@ -129,12 +138,6 @@ void AFPSCharacter::Tick(const float DeltaTime)
 	Super::Tick(DeltaTime);
 	AimingTimeline.TickTimeline(DeltaTime);
 	UpdateAnimationStatus();
-
-    if (bIsAIControlled && AIController)
-    {
-        // AI logic for detecting and firing at player
-        AIFireAtPlayer();
-    }
 
 }
 
@@ -445,19 +448,6 @@ void AFPSCharacter::StartJump()
 	if (!GetCharacterMovement()->IsFalling())  // Check if the character is on the ground
     {
         Jump();  // Physically jump
-        // Play the jump animation depending on the current movement speed
-        /*if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
-        {
-            if (GetCharacterMovement()->MaxWalkSpeed == 300)
-            {
-                AnimInstance->Montage_Play(WalkJump);
-            }
-            else if (GetCharacterMovement()->MaxWalkSpeed == 600)
-            {
-                AnimInstance->Montage_Play(JogJump);
-            }
-        }*/
-
         bIsJump = true;  // Update the flag to track jumping
     }
 }
@@ -693,20 +683,23 @@ void AFPSCharacter::Die()
     SetLifeSpan(DeathAnim->GetPlayLength());  // Destroy the enemy after 5 seconds
 }
 
-void AFPSCharacter::AIFireAtPlayer()
+
+void AFPSCharacter::OnDetectionSphereOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-    // Get the player's pawn
     APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
-
-    if (PlayerPawn)
+    if (OtherActor && (OtherActor != this) && OtherActor == PlayerPawn && OtherActor->IsA(AFPSCharacter::StaticClass()))
     {
-        // If the player is within attack range, fire
-        float DistanceToPlayer = FVector::Dist(GetActorLocation(), PlayerPawn->GetActorLocation());
+        TargetActor = OtherActor; // Set the target actor
+        UE_LOG(LogTemp, Warning, TEXT("Player detected"));
+    }
+}
 
-        if (DistanceToPlayer <= AI_EnemyAttackRange)
-        {
-            // Attack logic here (e.g., shoot the player)
-            StartFiring();  // Implement this method to fire at the player
-        }
+void AFPSCharacter::OnDetectionSphereEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+    APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+    if (OtherActor && (OtherActor != this) && OtherActor == PlayerPawn && OtherActor->IsA(AFPSCharacter::StaticClass()))
+    {
+        TargetActor = nullptr; // Clear the target actor
+        UE_LOG(LogTemp, Warning, TEXT("Player lost"));
     }
 }
