@@ -6,6 +6,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Item/Item.h"
+#include "AIController.h"
 #include "FPSCharacter.generated.h"
 
 
@@ -21,6 +22,13 @@ public:
 	// Sets default values for this character's properties
 	AFPSCharacter();
 
+	// Method to get the current target actor
+    AActor* GetTargetActor() const;
+
+    // Method to set the target actor
+    void SetTargetActor(AActor* Actor);
+
+	AActor* TargetActor; 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -82,6 +90,7 @@ public:
 	bool bIsCrouching = false;
 	bool bIsJogging = false;
 	bool bIsJump = false;
+	bool bIsDead = false;
 
     void StartCrouch();
 
@@ -99,6 +108,31 @@ public:
 
 	void AdjustCameraToFloor();
 
+	void Die();
+
+    // Death animation
+    UPROPERTY(EditAnywhere, Category = "Animation")
+    UAnimMontage* DeathAnim;
+
+	// Death particle effect
+    UPROPERTY(EditAnywhere, Category = "Effects")
+    UParticleSystem* DeathEffect;
+
+    // Sound effect for death
+    UPROPERTY(EditAnywhere, Category = "Audio")
+    USoundBase* DeathSound;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="AI")
+    bool bIsAIControlled;  // To check if the character is AI-controlled
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="AI")
+    float AI_EnemyAttackRange;  // Range at which AI should start attacking the player
+
+    // AI Behavior
+    void AIFireAtPlayer();
+
+	class AAIController* AIController;
+	void StartFiring();
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Configurations")
 	TArray<TSubclassOf<class AWeapon>> DefaultWeapons;
@@ -210,7 +244,7 @@ protected:
 protected:
 	virtual void NextWeapon();
 	virtual void LastWeapon();
-	virtual void StartFiring();
+
 	void MoveForward(const float Value);
 	void MoveRight(const float Value);
 	void Lookup(const float Value);

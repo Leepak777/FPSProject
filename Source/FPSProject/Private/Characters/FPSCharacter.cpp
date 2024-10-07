@@ -4,6 +4,7 @@
 #include "Weapon/Weapon.h"
 #include "Item/Item.h"
 #include "Animation/FPSAnimInstance.h"
+#include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
 
@@ -17,6 +18,10 @@ AFPSCharacter::AFPSCharacter()
 
 	MaxHealth = 100.0f;  // or your desired value
     CurrentHealth = MaxHealth;
+
+    //AI Controller
+    bIsAIControlled = false;
+    AI_EnemyAttackRange = 600.0f;
 
 	GetMesh()->SetTickGroup(ETickingGroup::TG_PostUpdateWork);
 	GetMesh()->bVisibleInReflectionCaptures = true;
@@ -38,6 +43,18 @@ AFPSCharacter::AFPSCharacter()
 void AFPSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+    if (GetController()->IsA(AAIController::StaticClass()))
+    {
+        bIsAIControlled = true;
+        AIController = Cast<AAIController>(GetController());
+
+        UE_LOG(LogTemp, Warning, TEXT("AI Character Initialized"));
+    }
+    else
+    {
+        bIsAIControlled = false;
+        UE_LOG(LogTemp, Warning, TEXT("Player Character Initialized"));
+    }
 	//SewtupADS timeline
 	if(AimingCurve){	
 	FOnTimelineFloat TimelineFloat;
@@ -89,6 +106,22 @@ void AFPSCharacter::BeginPlay()
 		}
 	}
 	GetCharacterMovement()->MaxWalkSpeed = 300;
+    if (HasAuthority()) {
+        UE_LOG(LogTemp, Warning, TEXT("Character has authority."));
+    } else {
+        UE_LOG(LogTemp, Warning, TEXT("Character does NOT have authority."));
+    }
+
+}
+
+AActor* AFPSCharacter::GetTargetActor() const
+{
+    return TargetActor; // Return the stored target actor
+}
+
+void AFPSCharacter::SetTargetActor(AActor* Actor)
+{
+    TargetActor = Actor; // Set the target actor
 }
 
 void AFPSCharacter::Tick(const float DeltaTime)
@@ -96,6 +129,13 @@ void AFPSCharacter::Tick(const float DeltaTime)
 	Super::Tick(DeltaTime);
 	AimingTimeline.TickTimeline(DeltaTime);
 	UpdateAnimationStatus();
+
+    if (bIsAIControlled && AIController)
+    {
+        // AI logic for detecting and firing at player
+        AIFireAtPlayer();
+    }
+
 }
 
 // Called to bind functionality to input
@@ -359,6 +399,7 @@ void AFPSCharacter::UpdateAnimationStatus()
 			else{
 				FPSAnimInstance->IsInAir = false;
 			}
+            FPSAnimInstance->IsDead = bIsDead;
         }
     }
 }
@@ -605,18 +646,67 @@ void AFPSCharacter::AddToInventory(AItem* Item)
 float AFPSCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
     // Implement the logic for handling damage to the player character
-    CurrentHealth -= DamageAmount;
-
-    if (CurrentHealth <= 0)
+    if (CurrentHealth <= 0.0f)
     {
-        // Handle player death
-        Destroy();
+        return 0.0f;  // Already dead
+    }
+    
+    UE_LOG(LogTemp, Warning, TEXT("Enemy took damage: %f, Remaining Health: %f"), DamageAmount, CurrentHealth);
+    UE_LOG(LogTemp, Warning, TEXT("Damage taken by %s: %f"), *GetName(), DamageAmount);
+    
+    // Apply damage to current health
+    CurrentHealth -= DamageAmount;
+    
+    if (CurrentHealth <= 0.0f)
+    {
+        Die();  // Handle death if health reaches 0
     }
 
-    return DamageAmount;
+    return DamageAmount;  // Return the amount of damage applied
 }
 
 void AFPSCharacter::Heal(float HealAmount)
 {
     CurrentHealth = FMath::Clamp(CurrentHealth + HealAmount, 0.0f, MaxHealth);
+}
+
+
+void AFPSCharacter::Die()
+{
+    bIsDead = true;
+    // Disable enemy collision
+    //GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);    
+
+    // Play death sound effect if available
+    if (DeathSound)
+    {
+        UGameplayStatics::PlaySoundAtLocation(this, DeathSound, GetActorLocation());
+    }
+
+    // Play death particle effect if available
+    if (DeathEffect)
+    {
+        UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), DeathEffect, GetActorLocation());
+    }
+
+    // Destroy the enemy actor after a short delay
+    SetLifeSpan(DeathAnim->GetPlayLength());  // Destroy the enemy after 5 seconds
+}
+
+void AFPSCharacter::AIFireAtPlayer()
+{
+    // Get the player's pawn
+    APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+
+    if (PlayerPawn)
+    {
+        // If the player is within attack range, fire
+        float DistanceToPlayer = FVector::Dist(GetActorLocation(), PlayerPawn->GetActorLocation());
+
+        if (DistanceToPlayer <= AI_EnemyAttackRange)
+        {
+            // Attack logic here (e.g., shoot the player)
+            StartFiring();  // Implement this method to fire at the player
+        }
+    }
 }

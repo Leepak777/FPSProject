@@ -117,6 +117,9 @@ public:
     UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "State")
     class AFPSCharacter* CurrentOwner;
 
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "State")
+    class AEnemy* CurrentEnemyOwner;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Configurations")
     FIKProperties IKProperties;
 

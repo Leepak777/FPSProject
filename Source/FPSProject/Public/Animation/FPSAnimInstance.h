@@ -85,6 +85,9 @@ public:
     UPROPERTY(BlueprintReadWrite, BlueprintReadWrite, Category = "Movement")
     bool IsInAir = false;
 
+    UPROPERTY(BlueprintReadWrite, BlueprintReadWrite, Category = "Movement")
+    bool IsDead = false;
+
     UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Anim|IK")
     FTransform CurrentWeaponCustomOffsetTransform;
     /*

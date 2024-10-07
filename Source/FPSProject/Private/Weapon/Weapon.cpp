@@ -74,6 +74,7 @@ void AWeapon::Shoot()
             // Reduce current ammo and play animations
             CurrentAmmo--;
             Mesh->PlayAnimation(ShootAnim, false);
+            //UGameplayStatics::PlaySoundAtLocation(this, HitSound, GetActorLocation());
             PlayMuzzleFlash();
 
             if (CurrentAmmo <= 0)

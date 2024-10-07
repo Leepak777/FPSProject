@@ -3,6 +3,8 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "DrawDebugHelpers.h" 
 #include "Components/SphereComponent.h"
+#include "GeometryCollection/GeometryCollectionComponent.h"
+
 
 ATracerProjectile::ATracerProjectile()
 {
@@ -49,12 +51,12 @@ void ATracerProjectile::Tick(float DeltaTime)
     if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, CollisionParams))
     {
         // Optionally, visualize the hit point
-        //DrawDebugLine(GetWorld(), Start, HitResult.Location, FColor::Green, false, 5.0f, 0, 1.0f);
+        DrawDebugLine(GetWorld(), Start, HitResult.Location, FColor::Green, false, 5.0f, 0, 1.0f);
     }
     else
     {
         // Draw a line to the end point if no hit
-        //DrawDebugLine(GetWorld(), Start, End, FColor::Blue, false, 5.0f, 0, 1.0f);
+        DrawDebugLine(GetWorld(), Start, End, FColor::Blue, false, 5.0f, 0, 1.0f);
     }
 
 }
@@ -63,9 +65,15 @@ void ATracerProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherAc
 {
     if (OtherActor && OtherActor != this)
     {
+        UGeometryCollectionComponent* GCComponent = Cast<UGeometryCollectionComponent>(OtherComp);
+        if (GCComponent)
+        {
+            GCComponent->AddImpulseAtLocation(Hit.ImpactNormal * 100000.0f, Hit.ImpactPoint);
+        }
         UGameplayStatics::ApplyPointDamage(OtherActor, Damage, GetActorForwardVector(), Hit, GetInstigatorController(), this, nullptr);
         DestroyProjectile();
     }
+    
 }
 
 void ATracerProjectile::DestroyProjectile()
